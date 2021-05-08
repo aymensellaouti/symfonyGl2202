@@ -35,7 +35,6 @@ class ProductController extends AbstractController
         if(!$product) {
             $product = new Product();
         }
-
         $form = $this->createForm(ProductType::class, $product);
         $form->handleRequest($request);
         if($form->isSubmitted()) {
