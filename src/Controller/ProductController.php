@@ -15,11 +15,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class ProductController extends AbstractController
 {
     /**
-     * @Route("/", name="product")
+     * @Route("/list/{page<\d+>?1}/{number<\d+>?6}", name="product.list")
      */
-    public function index(): Response
+    public function index($page, $number): Response
     {
-        return $this->render('product/index.html.twig', []);
+        $repository = $this->getDoctrine()->getRepository('App:Product');
+        $products = $repository->findBy([], ['price'=> 'asc'],$number, ($page - 1) * $number);
+        return $this->render('product/index.html.twig', [
+            'products' => $products
+        ]);
     }
 
     /**
@@ -69,17 +73,26 @@ class ProductController extends AbstractController
      * @Route("/delete/{product}", name="product.delete")
      */
     public function deleteProduct(Product $product = null, EntityManagerInterface $manager) {
-        $isDeleted = false;
+
         if ($product) {
+            $productName = $product->getName();
             $manager->remove($product);
 //        $manager->persist($product2);
             $manager->flush();
-            $isDeleted = true;
+            $this->addFlash('success', "le produit $productName  a été supprimé avec succès");
+        } else {
+            $this->addFlash('error', "le produit  est innexistant");
         }
-        $product = null;
+
+        return $this->redirectToRoute('product.list');
+    }
+    /**
+     * @Route("/product/{product}", name="product.detail")
+     */
+    public function detailProduct(Product $product = null) {
         return $this->render('product/detail.html.twig', [
-            'product' => $product,
-            'isDeleted' => $isDeleted
+            'product' => $product
         ]);
     }
+
     }
