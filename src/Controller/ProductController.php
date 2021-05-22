@@ -3,8 +3,11 @@
 namespace App\Controller;
 
 use App\Entity\Product;
+use App\Entity\User;
 use App\Form\ProductType;
+use App\Service\Helper;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,7 +25,12 @@ class ProductController extends AbstractController
     public function index($page, $number): Response
     {
         $repository = $this->getDoctrine()->getRepository('App:Product');
-        $products = $repository->findBy([], ['price'=> 'asc'],$number, ($page - 1) * $number);
+        $user = $this->getUser();
+        $conditions = [];
+        if($user && !in_array('ROLE_ADMIN',$user->getRoles())) {
+            $conditions = ['user' => $user];
+        }
+        $products = $repository->findBy($conditions, ['price'=> 'asc'],$number, ($page - 1) * $number);
         return $this->render('product/index.html.twig', [
             'products' => $products
         ]);
@@ -31,13 +39,22 @@ class ProductController extends AbstractController
     /**
      * @Route("/add/{product?0}", name="product.add")
      */
-    public function addProduct(EntityManagerInterface $manager, Request  $request, Product $product = null) {
+    public function addProduct(EntityManagerInterface $manager, Request  $request, Product $product = null, LoggerInterface $logger, Helper $helper) {
+        $helper->sayHello();
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        $logger->info('Access to AddProduct Action');
         if(!$product) {
             $product = new Product();
+        } else {
+            if ($user && $product->getUser()->getId() != $user->getId()) {
+                return $this->redirectToRoute('product.list');
+            }
         }
         $form = $this->createForm(ProductType::class, $product);
         $form->handleRequest($request);
         if($form->isSubmitted()) {
+          $product->setUser($user);
           $manager->persist($product);
           $manager->flush();
           $this->addFlash('success', "le produit ".$product->getName()." a été ajouté avec succès");
