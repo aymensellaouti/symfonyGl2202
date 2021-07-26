@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Product;
-use App\Entity\User;
+use App\Events\AddProductEvents;
 use App\Form\ProductType;
 use App\Service\Helper;
 use Doctrine\ORM\EntityManagerInterface;
@@ -12,6 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 
 /**
@@ -19,6 +20,10 @@ use Symfony\Component\Routing\Annotation\Route;
  */
 class ProductController extends AbstractController
 {
+
+    public function __construct(private EventDispatcherInterface $dispatcher)
+    {}
+
     /**
      * @Route("/list/{page<\d+>?1}/{number<\d+>?6}", name="product.list")
      */
@@ -39,13 +44,21 @@ class ProductController extends AbstractController
     /**
      * @Route("/add/{product?0}", name="product.add")
      */
-    public function addProduct(EntityManagerInterface $manager, Request  $request, Product $product = null, LoggerInterface $logger, Helper $helper) {
+    public function addProduct(
+        EntityManagerInterface $manager,
+        Request  $request,
+        Product $product = null,
+        LoggerInterface $logger,
+        Helper $helper
+    ) {
         $helper->sayHello();
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
         $logger->info('Access to AddProduct Action');
+        $operation = 'update';
         if(!$product) {
             $product = new Product();
+            $operation = 'add';
         } else {
             if ($user && $product->getUser()->getId() != $user->getId()) {
                 return $this->redirectToRoute('product.list');
@@ -57,6 +70,11 @@ class ProductController extends AbstractController
           $product->setUser($user);
           $manager->persist($product);
           $manager->flush();
+          if($operation == 'add') {
+              $addProductEvent = new AddProductEvents($product);
+              $this->dispatcher->
+              dispatch($addProductEvent, AddProductEvents::ADD_PRODUCT_EVENT);
+          }
           $this->addFlash('success', "le produit ".$product->getName()." a été ajouté avec succès");
           return $this->redirectToRoute('product.list');
         }
