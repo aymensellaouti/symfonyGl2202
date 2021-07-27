@@ -15,16 +15,16 @@ class TestSubscriber implements EventSubscriberInterface
     public function onKernelRequest(RequestEvent $event)
     {
         //dd($event);
-        dump($event->getRequest());
+//        dump($event->getRequest());
         $this->logger->info("Je viens de créer mon premier subscriber");
-        if($event->getRequest()->getLocale()==='fr') {
-            $event->stopPropagation();
-        }
+//        if($event->getRequest()->getLocale()==='fr') {
+//            $event->stopPropagation();
+//        }
     }
 
     public function onKernelController(ControllerEvent $event)
     {
-        dd($event->getRequest());
+//        dd($event->getRequest());
         $this->logger->info("Je viens de créer mon premier subscriber");
     }
 
