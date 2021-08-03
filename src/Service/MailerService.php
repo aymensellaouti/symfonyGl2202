@@ -11,8 +11,7 @@ class MailerService
         private \Swift_Mailer $mailer,
         private PdfService $pdf
     )
-    {
-    }
+    {}
 
 //    public function sendEmail() {
 //        $message = (new \Swift_Message('Hello Email'))
